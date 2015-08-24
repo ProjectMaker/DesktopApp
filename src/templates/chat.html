@@ -1,0 +1,9 @@
+<div ng-controller="chat">
+	<h1>{{ userConnected.name }}</h1>
+	<div class="chat-friends-connected">
+		<ul>
+			<friend-connected ng-repeat="friend in friendsConnected" friend="friend" start-dialog="startDialog(friend)" stop-dialog="stopDialog(friend)"></friends-connected>
+		</ul>
+	</div>
+	<chat-room friend="friend" send-message="sendMessage(friend, message)" ng-repeat="friend in friendsDialog"></room-chat>
+</div>

@@ -1,0 +1,9 @@
+<div class="favory-list">
+	<span ng-repeat="favory in favories">{{ favory.name }}</span>
+</div>
+<div class="favory-create">
+	<label>Name :</label>
+	<br/>
+	<input type="text" name="name" ng-model="favory.name" />
+	<button ng-click="create(favory)">Create</button>
+</div>

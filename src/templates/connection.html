@@ -1,0 +1,8 @@
+<div class="user-connection">
+	{{ users }}
+	<select ng-model="users" ng-options="user as user.name for user in users | orderBy: 'name' ">
+		<option value="">-- Selection --</option>
+	</select>
+	<br/>
+	<button ng-click="connect()">Connect</button>
+</div>

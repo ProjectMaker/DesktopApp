@@ -1,0 +1,19 @@
+<div>
+	Discussion avec {{friend.name}}
+	<br/>
+	<div class="messages">
+		<div ng-repeat="message in messages">
+			<span ng-if="message.destination == 'user'" style="color:#ff0000">
+				{{ message.content }}
+			</span>
+			<span ng-if="message.destination == 'friend'" style="color:#ff00ff">
+				{{ message.content }}
+			</span>
+		</div>
+	</div>
+	
+	<textarea ng-model="message">
+	
+	</textarea><br/>
+	<input type="button" value="send" ng-click="send()" />
+</div>
