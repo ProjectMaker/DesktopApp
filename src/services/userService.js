@@ -1,32 +1,91 @@
 var users = [{id: 1, name: 'Tom'}, {id: 2, name: 'Sandra'}, {id: 3, name: 'Emile'}];
 
+app.factory('KLWatcher',
+    function() {
+        var KLWatcher = function() {
+            this.initialize();
+        };
+
+        angular.extend(KLWatcher.prototype, {
+            initialize: function() {
+                this.callbacks = {};
+                console.log('initialize');
+            },
+
+            watch: function(variable, callback) {
+                if ( typeof(this[variable]) !== undefined ) {
+                    if ( !this.callbacks[variable] ) this.callbacks[variable] = [];
+                    this.callbacks[variable].push(callback);
+                }
+            },
+
+            notify: function(variable) {
+                if ( !this[variable]) return;
+                if ( !this.callbacks[variable]) return;
+
+                angular.forEach(this.callbacks[variable], function(callback, key) {
+                    callback(this[variable]);
+                }, this)
+            }
+        });
+
+        return KLWatcher;
+});
+
+app.factory('KLOnline',
+            ['KLWatcher',
+
+    function(KLWatcher) {
+        var KLOnline = function () {
+            this.initialize();
+        };
+
+
+        angular.extend(KLOnline.prototype,KLWatcher.prototype);
+        angular.extend(KLOnline.prototype, {
+            initialize: function() {
+                KLWatcher.prototype.initialize.apply(this);
+                this.onlineUsers = [];
+                this.onlinesRef = new Firebase("https://incandescent-heat-4484.firebaseio.com/online");
+                this.onlineRef = this.onlinesRef.push();
+                var connectedRef = new Firebase("https://incandescent-heat-4484.firebaseio.com/.info/connected");
+                connectedRef.on('value', function(snap) {
+                    this.onlineRef.set({name:"Unknown",  status:"online"});
+                    this.onlineRef.onDisconnect().remove();
+                }, this);
+
+                this.onlinesRef.on("value", function(snap) {
+                    this.onlineUsers = snap.val();
+                    this.notify('onlineUsers')
+
+                }, this);
+            },
+
+            getOnlineUsers: function() { return this.onlineUsers; },
+
+            updateOnlineUser: function(user) {
+                this.onlineRef.set({name: user.name});
+            },
+
+            disconnectUser: function() {
+                this.onlineRef.remove();
+            }
+        });
+
+        return new KLOnline();
+    }
+]);
+
 app.service('userService',
 		['$firebaseArray',
-		 '$firebaseObject',
-		 '$firebaseAuth',
+			'$firebaseObject',
+		 	'$firebaseAuth',
+			'KLOnline',
 
-	function($firebaseArray,$firebaseObject,$firebaseAuth) {
-		var presenceListRef = new Firebase("https://incandescent-heat-4484.firebaseio.com/presence");
-		var presenceRef = presenceListRef.push();	
-		
-		var connectedRef = new Firebase("https://incandescent-heat-4484.firebaseio.com/.info/connected");
-		connectedRef.on('value', function(snap) {
-			console.log(snap.val());
-			presenceRef.set({name:'tom',  status:"online"});
-			presenceRef.onDisconnect().remove();
-		});
-		
-		presenceListRef.on("value", function(snap) {
-			//console.log(snap);
-			_.each(snap.val(), function(user) {
-				console.log(user.name);
-			});
-			
-			
-		});
-				
+	function($firebaseArray,$firebaseObject,$firebaseAuth,klOnline) {
 		var ref = new Firebase("https://incandescent-heat-4484.firebaseio.com/");
 		var auth = $firebaseAuth(ref);
+
 		auth.$onAuth( function(authData) {
 			if ( !authData ) return;
 			//ref.child('users').child(authData.uid).set({name: authData.password.email, provider: 'password'});
@@ -36,14 +95,7 @@ app.service('userService',
 				console.log('syncUser, %s',snap.exists());
 			});
 		});
-		/*
-		var users = $firebaseArray(ref.child('users'));
-		//sync.$loaded( function() { console.log(sync)});
-		//sync.$add(users).catch(function(err) { console.log(err); });
-		
-		*/
-		this.getUsers = function() { return users; };
-		
+
 		this.create = function(user) {
 			auth.$createUser(user)
 				.then(function(userData) {
@@ -59,8 +111,7 @@ app.service('userService',
 			
 			auth.$authWithPassword(user)
 				.then( function(authData) {
-					presenceRef.set({name: authData.password.email, status: 'online'});
-					
+                    klOnline.updateOnlineUser({name: authData.password.email});
 				}).catch( function(error) {
 					console.log(error.message)
 				});
@@ -68,13 +119,12 @@ app.service('userService',
 			
 			console.log('auth');
 		};
-		this.unauth = function() { 
-			userRef.remove();
+		this.unauth = function() {
+            klOnline.disconnectUser();
 			auth.$unauth(); 
 		};
 		
-		this.getSession = function() { return auth.$getAuth(); }
-		
+		this.getSession = function() { return auth.$getAuth(); };
 		this.isConnected = function() {
 			//console.log(auth.$getAuth());
 			return auth.$getAuth();

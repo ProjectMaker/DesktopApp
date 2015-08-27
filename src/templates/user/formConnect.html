@@ -1,4 +1,8 @@
-<h1>{{ session }}</h1>
+<h3>Liste des utilisateurs connectes</h3>
+<div ng-repeat="user in onlineUsers">
+    {{ user.name }}
+</div>
+
 <div class="form-login-user" ng-hide="isConnected()">
 	<label>Email : </label><input type="text" name="email" ng-model="user.email" />
 	<br/>
