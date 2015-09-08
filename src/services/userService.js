@@ -44,6 +44,7 @@ app.factory('KLOnline',
         angular.extend(KLOnline.prototype,KLWatcher.prototype);
         angular.extend(KLOnline.prototype, {
             initialize: function() {
+                /*
                 KLWatcher.prototype.initialize.apply(this);
                 this.onlineUsers = [];
                 this.onlinesRef = new Firebase("https://incandescent-heat-4484.firebaseio.com/online");
@@ -59,6 +60,7 @@ app.factory('KLOnline',
                     this.notify('onlineUsers')
 
                 }, this);
+                */
             },
 
             getOnlineUsers: function() { return this.onlineUsers; },
@@ -86,6 +88,10 @@ app.service('userService',
 		var ref = new Firebase("https://incandescent-heat-4484.firebaseio.com/");
 		var auth = $firebaseAuth(ref);
 
+        this.getFireBaseRef = function() {return ref; };
+
+
+        /*
 		auth.$onAuth( function(authData) {
 			if ( !authData ) return;
 			//ref.child('users').child(authData.uid).set({name: authData.password.email, provider: 'password'});
@@ -95,10 +101,27 @@ app.service('userService',
 				console.log('syncUser, %s',snap.exists());
 			});
 		});
+        */
+
+        this.remove = function(user) {
+            auth.$removeUser({
+                email: user.email,
+                password: user.password
+            }).then(
+                function() {
+                    ref.child('users').child(user.$id).remove();
+                }
+            ).catch(
+                function(error) {
+                    console.log('errro');
+                }
+            )};
+
 
 		this.create = function(user) {
 			auth.$createUser(user)
 				.then(function(userData) {
+                    ref.child('users').child(userData.uid).set(user);
 					console.log(userData);
 				}).catch(function(error) {
 					console.log(error.message);
@@ -108,7 +131,7 @@ app.service('userService',
 		
 		this.auth = function(user) {
 			//userRef.set({name:'zozo',  status:"online"});
-			
+
 			auth.$authWithPassword(user)
 				.then( function(authData) {
                     klOnline.updateOnlineUser({name: authData.password.email});
